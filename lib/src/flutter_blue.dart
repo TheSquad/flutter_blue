@@ -56,6 +56,15 @@ class FlutterBlue {
         .map((s) => BluetoothState.values[s.state.value]);
   }
 
+  Future<bool> startAdvertising(){
+    return _channel.invokeMethod('startAdvertising');
+  }
+
+  /// Returns true when advertising is implemented
+  Future<bool> stopAdvertising(){
+    return _channel.invokeMethod('stopAdvertising');
+  }
+
   /// Retrieve a list of connected devices
   Future<List<BluetoothDevice>> get connectedDevices {
     return _channel

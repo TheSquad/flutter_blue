@@ -31,6 +31,12 @@ import android.os.Build;
 import android.os.ParcelUuid;
 import android.util.Log;
 
+import android.bluetooth.le.AdvertiseCallback;
+import android.bluetooth.le.AdvertiseData;
+import android.bluetooth.le.AdvertiseSettings;
+import android.bluetooth.le.BluetoothLeAdvertiser;
+import static android.bluetooth.le.AdvertiseSettings.ADVERTISE_MODE_BALANCED;
+
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 
@@ -97,6 +103,14 @@ public class FlutterBluePlugin implements MethodCallHandler, RequestPermissionsR
         }
 
         switch (call.method) {
+            case "startAdvertising": {
+                result.success(startAdvertising());
+                break;
+            }
+            case "stopAdvertising": {
+                result.success(stopAdvertising());
+                break;
+            }
             case "setLogLevel":
             {
                 int logLevelIndex = (int)call.arguments;
@@ -901,6 +915,51 @@ public class FlutterBluePlugin implements MethodCallHandler, RequestPermissionsR
                     }
                 });
     }
+
+    private boolean startAdvertising() {
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+        BluetoothLeAdvertiser advertiser = mBluetoothAdapter.getBluetoothLeAdvertiser();
+        if (advertiser != null) {
+            AdvertiseSettings.Builder settingsBuilder = new AdvertiseSettings.Builder();
+            settingsBuilder.setConnectable(true)
+                    .setTimeout(0) // will be turned on indefinitely
+                    .setAdvertiseMode(ADVERTISE_MODE_BALANCED);
+
+
+            ParcelUuid parcelUuid = new ParcelUuid(UUID.fromString("123123123-0123-1230-8123-12305f9b34fb"));
+            AdvertiseData advertiseData = new AdvertiseData.Builder()
+                    .setIncludeDeviceName(true)
+                    .addServiceUuid(parcelUuid)
+                    .build();
+            advertiser.startAdvertising(settingsBuilder.build(), advertiseData, mAdvertiseCallback);
+            return true;
+        }
+    }
+    return false;
+    }
+
+    private boolean stopAdvertising() {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+        BluetoothLeAdvertiser advertiser = mBluetoothAdapter.getBluetoothLeAdvertiser();
+        if (advertiser != null) {
+            advertiser.stopAdvertising(mAdvertiseCallback);
+            return true;
+        }
+    }
+    return false;
+    }
+
+    private AdvertiseCallback mAdvertiseCallback = new AdvertiseCallback() {
+    @Override
+    public void onStartSuccess(AdvertiseSettings settingsInEffect) {
+        Log.d(TAG, "Peripheral advertising started");
+    }
+
+    @Override
+    public void onStartFailure(int errorCode) {
+        Log.d(TAG, "Peripheral advertising failed: " + errorCode);
+    }
+    };
 
     // BluetoothDeviceCache contains any other cached information not stored in Android Bluetooth API
     // but still needed Dart side.
